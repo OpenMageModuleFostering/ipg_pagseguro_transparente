@@ -1,0 +1,32 @@
+<link rel="stylesheet" href="<?php echo $this->getSkinUrl('pagsegurodireto/css/styles.css') ?>" type="text/css" />
+<script type="text/javascript" src="<?php echo $this->getJsUrl('ipagare/pagsegurodireto/adminhtml/sales/order/view.js') ?>"></script>
+<script type="text/javascript">
+    var ipgPagSeguroDiretoOrderView = new IpagarePagSeguroDiretoOrderView();
+</script>
+
+<?php if ($_specificInfo = $this->getSpecificInformation()): ?>
+    <table class="form-list" cellspacing="0">
+        <tbody>
+            <?php foreach ($_specificInfo as $_label => $_value): ?>
+                <tr>
+                    <?php
+                    if($_label == 'link-televendas') {
+                        ?>
+                        <td><?php echo nl2br(implode($this->getValueAsArray($_value, false), "\n")) ?></td>
+                        <?php
+                    } else {
+                        ?>
+                        <td ><?php echo $_label ?></td>
+                        <td ><strong><?php echo nl2br(implode($this->getValueAsArray($_value, false), "\n")) ?></strong></td>
+                        <?php
+                    }
+                    ?>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php else:
+      echo '<p>' . $this->htmlEscape($this->getMethod()->getTitle()) . '</p>';
+      endif;
+    
+echo $this->getChildHtml();

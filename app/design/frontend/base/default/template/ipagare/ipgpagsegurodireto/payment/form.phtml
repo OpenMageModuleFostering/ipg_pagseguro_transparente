@@ -1,0 +1,702 @@
+<script type="text/javascript">
+  //<![CDATA[
+  if ((typeof PagSeguroDirectPayment === 'undefined') && !window.PagSeguroDirectPayment) {
+    document.write('<script type="text/javascript" src="<?php echo $this->getJsUrl('ipagare/ipgpagsegurodireto/frontend/payment/pagseguro.directpayment.js', array('_secure' => true)); ?>"><\/script>');
+  }
+  //]]>
+</script>
+
+<?php
+$isInCvmPayment = Mage::helper('ipgbase/url')->isInCvmPayment();
+$isInOpcPayment = Mage::helper('ipgbase/url')->isInOpcPayment();
+$isInTelevendasPayment = Mage::helper('ipgbase/url')->isInTelevendasPayment();
+
+$sessionResponse = $this->getSessionId();
+if ($sessionResponse->hasErrors()) {
+  echo '<div class="ipagare">';
+  foreach ($sessionResponse->getErrors() as $error) {
+    echo '<p class="error">(' . $error->getCode() . ') ' . $error->getMessage() . '</p>';
+  }
+  echo '</div>';
+
+  return;
+}
+
+$this->mountPaymentTypeOptions();
+$code = $this->getMethodCode();
+?>
+<link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/styles.css') ?>" type="text/css" />
+<?php if ($this->isCustomCssEnabled()): ?>
+  <link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/custom.css') ?>" type="text/css" />
+<?php endif; ?>
+<?php
+if ($isInCvmPayment) {
+  ?>
+  <link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/cvm.css') ?>" type="text/css" />
+  <?php
+} else if ($isInOpcPayment) {
+  ?>
+  <link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/opc.css') ?>" type="text/css" />
+  <?php
+} else if ($isInTelevendasPayment) {
+  ?>
+  <?php
+}
+?>
+<!--[if lt IE 8]>
+    <link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/styles-ie7.css') ?>" type="text/css" />
+<![endif]-->
+
+<div class="ipagare">
+  <div class="tool-tip" id="ipgpagsegurodireto-cc-payment-bin-card-tool-tip" style="display:none;">
+    <div class="tool-tip-content"><img src="<?php echo $this->getSkinUrl('ipgpagsegurodireto/images/cvv.gif') ?>" alt="<?php echo $this->__('Card Verification Number Visual Reference') ?>" title="<?php echo $this->__('Card Verification Number Visual Reference') ?>" /></div>
+  </div>
+
+  <div class="tool-tip" id="ipgpagsegurodireto-hp-payment-bin-card-tool-tip" style="display:none;">
+    <div>
+      <div><?php echo $this->__('txt.msgBin1'); ?></div>
+      <span><?php echo $this->__('txt.msgBin2'); ?></span>
+      <div>
+        <img alt="exemplo" src="<?php echo $this->getSkinUrl('ipgpagsegurodireto/images/codigo_bin_1.png') ?>">
+        <div><?php echo $this->__('txt.msgBin3'); ?></div>
+      </div>
+      <div>
+        <img alt="exemplo" src="<?php echo $this->getSkinUrl('ipgpagsegurodireto/images/codigo_bin_2.png') ?>">
+        <div><?php echo $this->__('txt.msgBin4'); ?></div>
+      </div>
+    </div>
+  </div>
+
+  <fieldset class="form-list">
+    <ul id="payment_form_<?php echo $code ?>" style="display: none;">
+      <li>
+        <input type="hidden" value="<?php echo $sessionResponse->getSession()->getId(); ?>" name="payment[ipg_pagsegurodireto_session_id]" id="ipg_pagsegurodireto_session_id"/>
+        <input type="hidden" name="payment[ipg_pagsegurodireto_credit_card_token]" id="ipg_pagsegurodireto_credit_card_token"/>
+        <input type="hidden" name="payment[ipg_pagsegurodireto_sender_hash]" id="ipg_pagsegurodireto_sender_hash"/>
+        <input type="hidden" name="payment[ipg_pagsegurodireto_installment_quantity]" id="ipg_pagsegurodireto_installment_quantity" />
+        <input type="hidden" name="payment[ipg_pagsegurodireto_installment_value]" id="ipg_pagsegurodireto_installment_value" />
+
+        <?php
+        $imagePath = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_MEDIA) . 'ipagare/ipgpagsegurodireto/bandeiras/';
+
+        $paymentTypeOptions = $this->getPaymentTypeOptions();
+        if ($this->hasErrors()) {
+          foreach ($paymentTypeOptions->getErrors() as $key => $value) {
+            echo $key . " - " . $value['mensagem'];
+          }
+        }
+        $grandTotal = Mage::getSingleton('checkout/cart')->getQuote()->getGrandTotal();
+        $grandTotalFormat = $this->helper('checkout')->formatPrice(Mage::getSingleton('checkout/cart')->getQuote()->getGrandTotal());
+
+        if ($this->hasCreditCard()) {
+          ?>
+          <p class="titulo"><?php echo $this->__('txt.msgTituloMetodoPagamentoCartao'); ?></p>
+          <?php
+          foreach ($paymentTypeOptions->getOptions() as $paymentTypeOption) {
+            $paymentType = $paymentTypeOption->getPaymentType();
+            if ($paymentType->isCreditCard()) {
+              ?>
+              <span class="img-container-pagsegurodireto bnd-<?php echo $paymentType->getValue(); ?>" id="sp_<?php echo $paymentType->getValue(); ?>" brand="<?php echo $paymentType->getBandeira(); ?>" paymentType="cc">
+                <?php $urlImage = $imagePath . $paymentType->getValue() . '/1x.gif'; ?>
+                <img class="imgMP" nid="<?php echo $paymentType->getValue(); ?>" src="<?php echo $urlImage; ?>" title="<?php echo $paymentType->getNome(); ?>" />
+              </span>
+              <?php
+            }
+          }
+          ?>
+          <div class="divPagForm" style="display: none;" id="divPagForm-cc">
+            <p><input type="radio" class="review" style="display: none;" /></p>
+
+            <div class="fields ipagare-parcelas">
+              <label class="titulo-cartao"><?php echo $this->__('txt.numParcelas'); ?><em>*</em></label>
+              <select name="" id="ipgpagseguro_parcelas" class="review validate-select" />
+              <option value=""><?php echo $this->__('txt.Parcelas'); ?></option>
+              </select>
+            </div>
+
+            <div class="fields">
+              <label class="titulo-cartao"><?php echo $this->__('txt.numeroCartao'); ?><em>*</em></label>
+              <input type="text" class="input-text required-entry number-only validate-cc-number validate-digits" name="payment[ipgpagsegurodireto_numero_cartao]" id="ipgpagsegurodireto_numero_cartao"  maxlength="16" />
+            </div>
+            <div class="fields">
+              <div class="ipagare-validade-cartao">
+                <label class="titulo-cartao"><?php echo $this->__('txt.validade'); ?><em>*</em></label><br />
+                <input type="text" placeholder="MM" class="month input-text validate-number validate-digits mes-validade required-entry" maxlength="2" name="payment[ipgpagsegurodireto_mes_validade_cartao]" id="ipgpagsegurodireto_mes_validade_cartao"  />
+                <span>/</span>
+                <input type="text" placeholder="AA" class="year input-text validate-number validate-digits ano-validade required-entry" maxlength="2" name="payment[ipgpagsegurodireto_ano_validade_cartao]" id="ipgpagsegurodireto_ano_validade_cartao"  />
+              </div>
+
+              <div class="ipgpagseguro-cvv">
+                <label class="titulo-cartao"><?php echo $this->__('txt.codigoSeguranca'); ?><em>*</em></label><br />
+                <div class="cvv">
+                  <input type="text" class="input-text number-only required-entry cvv validate-number" name="payment[ipgpagsegurodireto_codigo_seguranca_cartao]" id="ipgpagsegurodireto_codigo_seguranca_cartao" /> 
+                </div>
+                <div class="cvv-o-que-e-isso">
+                  <a href="javascript:void(0)"><?php echo $this->__('txt.msgAjudaCodSeguranca'); ?></a>
+                </div>
+              </div>
+            </div>
+
+            <div class="titular-cartao">
+              <h4><?php echo $this->__('txt.titularCartao'); ?></h4>
+
+              <div class="fields">
+                <label class="titulo-cartao"><?php echo $this->__('txt.msgTituloNomeTitularCartao'); ?> <em>*</em></label>
+                <input type="text" class="required-entry input-text alpha-upper-only" name="payment[ipgpagsegurodireto_nome_titular_cartao]" id="ipgpagsegurodireto_nome_titular_cartao" size="35" maxlength="200" />
+              </div>
+
+              <div class="fields">
+                <label class="cpf-titulo-cartao"><?php echo $this->__('txt.cpfTitularCartao'); ?> <em>*</em></label>
+                <input type="text" class="required-entry input-text cpf" name="payment[ipgpagsegurodireto_cpf_titular_cartao]" size="11" maxlength="11" />
+              </div>
+
+              <div class="fields">
+                <label class="nascimento-titulo-cartao"><?php echo $this->__('txt.nascimentoTitularCartao'); ?> <em>*</em></label>
+                <input type="text" class="dob required-entry input-text pagseguro-card-dob" name="payment[ipgpagsegurodireto_nascimento_titular_cartao]" size="10" maxlength="10" placeholder="DD/MM/AAAA" />
+              </div>
+
+              <div class="fields">
+                <label class="fone-titulo-cartao"><?php echo $this->__('txt.foneTitularCartao'); ?> <em>*</em></label>
+                <input type="text" class="areacode required-entry input-text" name="payment[ipgpagsegurodireto_areacode_titular_cartao]" size="2" maxlength="2" />
+                <input type="text" class="fonenumber required-entry input-text" id="ipgpagsegurodireto_fonenumber_titular_cartao" name="payment[ipgpagsegurodireto_fonenumber_titular_cartao]" size="9" maxlength="9" />
+              </div>
+            </div>
+          </div>
+          <?php
+          //}
+        }
+        if ($this->hasTransferencia()) {
+          if ($this->hasCreditCard()) {
+            ?>
+            <br /><br />
+          <?php } else { ?>
+            <br />
+          <?php } ?>
+          <p class="titulo"><?php echo $this->__('txt.msgTituloMetodoPagamentoDebito'); ?></p>
+          <?php
+          // monta as bandeiras
+          foreach ($paymentTypeOptions->getOptions() as $paymentTypeOption) {
+            $paymentType = $paymentTypeOption->getPaymentType();
+            if ($paymentType->isDebitoBancario()) {
+              ?>
+              <span class="img-container-pagsegurodireto bnd-<?php echo $paymentType->getValue(); ?>" id="sp_<?php echo $paymentType->getValue(); ?>" brand="<?php echo $paymentType->getBandeira(); ?>" paymentType="etf">
+                <?php $urlImage = $imagePath . $paymentType->getValue() . '/1x.gif'; ?>
+                <img class="imgMP" nid="<?php echo $paymentType->getValue(); ?>" src="<?php echo $urlImage; ?>" title="<?php echo $paymentType->getNome(); ?>" />
+              </span>
+              <?php
+            }
+          }
+          foreach ($paymentTypeOptions->getOptions() as $paymentTypeOption) {
+            $paymentType = $paymentTypeOption->getPaymentType();
+            if ($paymentType->isDebitoBancario()) {
+              ?>
+              <div class="divPagForm sp_<?php echo $paymentType->getValue(); ?>" style="display: none;">
+                <div class="ipagare-parcelas">
+                  <?php
+                  foreach ($paymentTypeOption->getPaymentModeOptions() as $paymentModeOption) {
+                    $paymentMode = $paymentModeOption->getPaymentMode();
+                    if ($paymentMode->isAvista()) {
+                      ?>
+                      <p><input type="radio" name="" id="<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>" value="<?php echo $paymentType->getValue() . '_' . $paymentMode->getCodigo(); ?>" class="review" style="display: none;" /></p>
+                      <?php
+                      if ($paymentModeOption->hasDescontaAvista()) {
+                        ?><p><?php echo $this->__('txt.astDescontoDe') . $paymentModeOption->getDescontoAvista() . $this->__('txt.perc') ?></p>
+                        <span style="display: none;" class="ipgpagsegurodireto_desconto_<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>"><?php echo Mage::helper('core')->currency($paymentModeOption->getTotalDesconto()); ?></span>
+                        <span style="display: none;" class="ipgpagsegurodireto_totalcomdesconto_<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>"><?php echo Mage::helper('core')->currency($paymentModeOption->getParcelAmount()); ?></span>
+                        <?php
+                      } else {
+                        ?>
+                        <span style="display: none;" class="ipgpagsegurodireto_desconto_<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>"><?php echo Mage::helper('core')->currency(0); ?></span>
+                        <?php
+                      }
+                    }
+                  }
+                  ?>
+                </div>
+                <div class="ipagare-alert"><p><?php echo $this->__('txt.msgInformacaoDebito'); ?></p></div>
+              </div>
+              <?php
+            }
+          }
+        }
+
+        if ($this->hasBoleto()) {
+          ?>
+          <p class="titulo"><?php echo $this->__('txt.msgTituloMetodoPagamentoBoleto'); ?></p>
+          <?php
+          foreach ($paymentTypeOptions->getOptions() as $paymentTypeOption) {
+            $paymentType = $paymentTypeOption->getPaymentType();
+            if ($paymentType->isBoleto()) {
+              ?>
+              <span class="img-container-pagsegurodireto bnd-<?php echo $paymentType->getValue(); ?>" id="sp_<?php echo $paymentType->getValue(); ?>" brand="<?php echo $paymentType->getBandeira(); ?>" paymentType="boleto">
+                <?php $urlImage = $imagePath . $paymentType->getValue() . '/1x.gif'; ?>
+                <img class="imgMP" nid="<?php echo $paymentType->getValue(); ?>" src="<?php echo $urlImage; ?>" title="<?php echo $paymentType->getNome(); ?>" />
+              </span>
+              <?php
+            }
+          }
+          // monta as opcoes
+          foreach ($paymentTypeOptions->getOptions() as $paymentTypeOption) {
+            $paymentType = $paymentTypeOption->getPaymentType();
+            if ($paymentType->isBoleto()) {
+              ?>
+              <div class="divPagForm" style="display: none;">
+                <div class="ipagare-parcelas">
+                  <?php
+                  foreach ($paymentTypeOption->getPaymentModeOptions() as $paymentModeOption) {
+                    $paymentMode = $paymentModeOption->getPaymentMode();
+                    if ($paymentMode->isAvista()) {
+                      ?>
+                      <p><input type="radio" name="" id="<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>" value="<?php echo $paymentType->getValue() . '_' . $paymentMode->getCodigo(); ?>" class="review" style="display: none;" /></p>
+                      <?php
+                      if ($paymentModeOption->hasDescontaAvista()) {
+                        ?><p><?php echo $this->__('txt.astDescontoDe') . $paymentModeOption->getDescontoAvista() . $this->__('txt.perc'); ?></p>
+                        <span style="display: none;" class="ipgpagsegurodireto_desconto_<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>"><?php echo Mage::helper('core')->currency($paymentModeOption->getTotalDesconto()); ?></span>
+                        <span style="display: none;" class="ipgpagsegurodireto_totalcomdesconto_<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>"><?php echo Mage::helper('core')->currency($paymentModeOption->getParcelAmount()); ?></span>
+                        <?php
+                      } else {
+                        ?>
+                        <span style="display: none;" class="ipgpagsegurodireto_desconto_<?php echo $paymentType->getValue(); ?>_<?php echo $paymentMode->getCodigo(); ?>"><?php echo Mage::helper('core')->currency(0); ?></span>
+                        <?php
+                      }
+                    }
+                  }
+                  ?>
+                </div>
+              </div>
+              <?php
+            }
+          }
+        }
+        ?>
+        <?php // não remova o input payment[selected], é ele quem valida a obrigatoriedade de meios de pagamento    ?>
+        <input type="hidden" name="payment[selected][<?php echo $this->getMethodCode(); ?>]" data-method="<?php echo $this->getMethodCode(); ?>" class="validate-one-payment-brand" />
+        <p class="msg-pagseguro"><span><?php echo $this->__('txt.msgPagamentoPagSeguro'); ?></span></p>
+      </li>
+    </ul>
+  </fieldset>
+</div>
+
+<?php Mage::getSingleton('core/session')->setOrderId(null); ?>
+
+<script type="text/javascript">
+  //<![CDATA[
+  Object.extend(Prototype.Browser, {
+    ie6: (/MSIE (\d+\.\d+);/.test(navigator.userAgent)) ? (Number(RegExp.$1) == 6 ? true : false) : false,
+    ie7: (/MSIE (\d+\.\d+);/.test(navigator.userAgent)) ? (Number(RegExp.$1) == 7 ? true : false) : false,
+    ie8: (/MSIE (\d+\.\d+);/.test(navigator.userAgent)) ? (Number(RegExp.$1) == 8 ? true : false) : false,
+    ie9: (/MSIE (\d+\.\d+);/.test(navigator.userAgent)) ? (Number(RegExp.$1) == 9 ? true : false) : false,
+    ie10: (/MSIE (\d+\.\d+);/.test(navigator.userAgent)) ? (Number(RegExp.$1) == 10 ? true : false) : false
+  });
+
+  function IpagarePagSeguroDirectoPaymentType(code, discount, amount) {
+    this.code = code;
+    this.discount = discount;
+    this.amount = amount;
+  }
+
+  Validation.add('pagseguro-card-dob', Translator.translate('Data de nascimento DEVE ser ANTERIOR a data atual.'), function(v) {
+    var parts = v.split("/");
+    var birthDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    var today = new Date();
+
+    if (birthDate > today) {
+      return false;
+    }
+
+    return true;
+  });
+
+  var IpgPagSeguroDiretoPaymentMode = new function() {
+    this.getCodigo = function(interestFree, quantity) {
+      if (interestFree) {
+        this.codigo = 'A'.concat(quantity < 10 ? '0'.concat(quantity) : quantity);
+      } else {
+        this.codigo = 'B'.concat(quantity < 10 ? '0'.concat(quantity) : quantity);
+      }
+
+      return this.codigo;
+    };
+  };
+
+  var IpagarePagSeguroDirectoDiscount = [];
+
+  var IpagarePagSeguroDiretoPayment = new function(grandTotal, imagePath) {
+    this.grandTotal = grandTotal;
+    this.imagePath = imagePath;
+
+    this.bindPreValidationsMethods = function() {
+      IpagarePagSeguroDiretoPayment.addBeforeValidateFunction();
+    };
+
+    this.addBeforeValidateFunction = function() {
+      if (typeof payment.addBeforeValidateFunction === 'function') {
+        payment.addBeforeValidateFunction('ipgpagsegurodireto', function() {
+          return IpagarePagSeguroDiretoPayment.getSenderHash();
+        });
+      }
+    };
+
+    this.setSessionId = function() {
+      PagSeguroDirectPayment.setSessionId($('ipg_pagsegurodireto_session_id').value);
+    };
+
+    this.getSenderHash = function() {
+      var isIpgPagSeguro = false;
+      $$('[name="payment[method]"]').each(function(element) {
+        if (element.readAttribute('id') == 'p_method_ipgpagsegurodireto') {
+          if (element.checked) {
+            isIpgPagSeguro = true;
+          }
+        }
+      });
+
+      if (!isIpgPagSeguro) {
+        return true;
+      }
+
+      var hash = PagSeguroDirectPayment.getSenderHash();
+      if (hash != undefined && hash != '') {
+        $('ipg_pagsegurodireto_sender_hash').value = hash;
+
+        var selectedBrand = $$('span.img-container-pagsegurodireto.select');
+        var paymentType = selectedBrand.invoke('readAttribute', 'paymentType')[0];
+        if (paymentType != 'cc') {
+          return true;
+        }
+
+        function createCardToken() {
+          PagSeguroDirectPayment.createCardToken({
+            cardNumber: $('ipgpagsegurodireto_numero_cartao').value,
+            brand: selectedBrand.invoke('readAttribute', 'brand')[0],
+            cvv: $('ipgpagsegurodireto_codigo_seguranca_cartao').value,
+            expirationMonth: $('ipgpagsegurodireto_mes_validade_cartao').value,
+            expirationYear: '20'.concat($('ipgpagsegurodireto_ano_validade_cartao').value),
+            success: function(response) {
+              $('ipg_pagsegurodireto_credit_card_token').value = response.card.token;
+
+              function canGoNextStep() {
+                var option = $('ipgpagseguro_parcelas').select('option:selected');
+                var installmentQuantity = option.invoke('readAttribute', 'installmentQuantity');
+                var installmentValue = option.invoke('readAttribute', 'installmentValue');
+
+                $('ipg_pagsegurodireto_installment_quantity').value = installmentQuantity;
+                $('ipg_pagsegurodireto_installment_value').value = installmentValue;
+              }
+
+              canGoNextStep();
+            },
+            error: function(response) {
+              //console.log(response);
+            },
+            complete: function(response) {
+              //console.log(response);
+            }
+          });
+        }
+
+        createCardToken();
+      }
+    };
+
+    this.getInstallments = function(nid, brand) {
+      PagSeguroDirectPayment.getInstallments({
+        amount: this.grandTotal,
+        brand: brand,
+        success: function(response) {
+          if (response.error) {
+            alert(response.error);
+          }
+          $('ipgpagseguro_parcelas').select('option=[value != ""]').invoke('remove');
+          var installments = eval('response.installments.' + brand);
+          installments.each(function(i) {
+            var text = null;
+            var installmentAmount = null;
+            var installmentValue = null;
+            var discount = '';
+
+            if (i.quantity === 1) {
+              var paymentType = IpagarePagSeguroDirectoDiscount[nid];
+              if (paymentType != undefined && paymentType != '') {
+                installmentValue = paymentType.amount;
+                discount = (paymentType.discount > 0 ? ' (desconto de ' + paymentType.discount + '%)' : '');
+              } else {
+                installmentValue = i.installmentAmount;
+              }
+              installmentAmount = Moeda.format(i.installmentAmount, 2);
+              text = 'R$ '.concat(installmentAmount.toString()).concat(' à vista').concat(discount);
+            } else {
+              installmentAmount = Moeda.format(i.installmentAmount, 2);
+              installmentValue = i.installmentAmount;
+              text = i.quantity + 'x de R$ '.concat(installmentAmount).concat(i.interestFree ? ' s/ juros' : ' c/ juros');
+            }
+
+            var value = nid + '_' + IpgPagSeguroDiretoPaymentMode.getCodigo(i.interestFree, i.quantity);
+            var option = new Element('option', {'value': value, 'installmentQuantity': i.quantity, 'installmentValue': installmentValue.toFixed(2)}).update(text);
+            $('ipgpagseguro_parcelas').insert(option);
+          });
+
+          var img = $$('span.img-container-pagsegurodireto.select img')[0];
+          img.writeAttribute('src', IpagarePagSeguroDiretoPayment.imagePath + img.readAttribute('nid') + '/' + installments.length + 'x.gif');
+        },
+        error: function(response) {
+
+        },
+        complete: function(response) {
+
+        }
+      });
+
+      IpagarePagSeguroDiretoPayment.bindPreValidationsMethods();
+    };
+  };
+
+  ipagare.validatePayment = function() {
+  };
+
+  ipagare.preparePaymentPagSeguroDireto = function() {
+    $$('#checkout-payment-method-load select').invoke('enable');
+    $$('#checkout-payment-method-load input').invoke('enable');
+    $$('.sp-methods input').invoke('enable');
+    $$('.payment-methods dd').invoke('setStyle', {
+      padding: '0 0 0 0'
+    });
+    $$('.img-container-pagsegurodireto').invoke('observe', 'mouseover', function() {
+      this.addClassName('hot');
+    });
+    $$('.img-container-pagsegurodireto').invoke('observe', 'mouseout', function() {
+      this.removeClassName('hot');
+    });
+    $$('.img-container-pagsegurodireto').invoke('observe', 'click', function() {
+      IpagarePagSeguroDiretoPayment.getSenderHash();
+
+      $$('#payment_form_ipgpagsegurodireto select').each(function(evt) {
+        $(evt).down().selected = true;
+      });
+      $$('.img-container-pagsegurodireto').invoke('removeClassName', 'select');
+      this.addClassName('select');
+
+      var paymentType = this.readAttribute('paymentType');
+      if (paymentType == 'cc') {
+        IpagarePagSeguroDiretoPayment.getInstallments(this.down().readAttribute('nid'), this.readAttribute('brand'));
+      }
+
+      $$('div.divPagForm').invoke('hide');
+      this.next('div.divPagForm').show();
+
+      $$('.ipagare input[type=radio]').each(function(element) {
+        element.setAttribute('name', '');
+      });
+
+      $$('.ipagare .ipagare-parcelas select').each(function(element) {
+        element.setAttribute('name', '');
+      });
+
+      if (paymentType == 'etf') {
+        var radio = this.next('div.divPagForm.' + this.id).down('input[type=radio]', 0);
+        radio.setAttribute("name", "payment[type]");
+        radio.click();
+      } else {
+        var radio = this.next('div.divPagForm').down('input[type=radio]', 0);
+        radio.setAttribute("name", "payment[type]");
+        radio.click();
+      }
+
+      if (Prototype.Browser.IE) {
+        $$('#' + ipgValidatorIpgPagSeguroDiretoInst.paymentMethod + ' .divPagForm input.month').each(function(element) {
+          element.value = 'MM';
+        });
+        $$('#' + ipgValidatorIpgPagSeguroDiretoInst.paymentMethod + ' .divPagForm input.year').each(function(element) {
+          element.value = 'AA';
+        });
+      }
+
+      if (!isUrlTelevendas) {
+        if (isInCvmPayment) {
+          payment.update();
+        }
+      } else {
+        ipagare.review();
+      }
+    });
+    $$('#' + ipgValidatorIpgPagSeguroDiretoInst.paymentMethod + ' input.number-only').each(function(element) {
+      Element.observe(element, 'keyup', function() {
+        ipgValidatorIpgPagSeguroDiretoInst.numeric(element);
+      });
+    });
+    $$('#' + ipgValidatorIpgPagSeguroDiretoInst.paymentMethod + ' input.alpha-upper-only').each(function(element) {
+      Element.observe(element, 'keyup', function() {
+        ipgValidatorIpgPagSeguroDiretoInst.upper(element);
+      });
+    });
+
+    $$('#payment_form_ipgpagsegurodireto .divPagForm select.review').invoke('observe', 'change', function() {
+      if (!isUrlTelevendas) {
+        // payment type
+        var option = $('ipgpagseguro_parcelas').select('option:selected');
+        var radio = $('divPagForm-cc').down('input[type=radio]', 0);
+        radio.setAttribute("name", "payment[type]");
+        radio.setAttribute("value", option.invoke('readAttribute', 'value'));
+        radio.click();
+
+        if (isInCvmPayment) {
+          payment.update();
+        }
+      } else {
+        ipagare.review();
+      }
+    });
+    $$('#checkout-payment-method-load input#p_method_' + ipgValidatorIpgPagSeguroDiretoInst.paymentMethod).invoke('observe', 'click', function() {
+      $$('.ipagare input[type=radio]').each(function(element) {
+        element.setAttribute('name', '');
+      });
+      $$('.ipagare .ipagare-parcelas select').each(function(element) {
+        element.setAttribute('name', '');
+      });
+    });
+  };
+  var IpgPagSeguroDiretoToggleToolTipBinCard = Class.create({
+    initialize: function() {
+      this.tip = $('ipgpagsegurodireto-cc-payment-bin-card-tool-tip');
+    },
+    insert: function(event) {
+      if (this.tip) {
+        this.tip.setStyle({
+          left: (Event.pointerX(event) - 100) + 'px',
+          top: (Event.pointerY(event) - 300) + 'px'
+        });
+        this.tip.toggle();
+      }
+      Event.stop(event);
+    }
+  });
+
+  var IpgPagSeguroDiretoMask = Class.create();
+  IpgPagSeguroDiretoMask.prototype = {
+    initialize: function() {
+
+    },
+    canApplayMask: function() {
+      if (Prototype.Browser.ie9 || Prototype.Browser.ie10) {
+        if (parseFloat(Prototype.Version.substring(0, 3)) < 1.7) {
+          return false;
+        }
+      }
+      return true;
+    },
+    areaCode: function(selector) {
+      if (this.canApplayMask()) {
+        var maskedInputFone = new MaskedInput(selector);
+        maskedInputFone.unmask();
+        maskedInputFone.mask('(99)');
+      }
+    },
+    telephone: function(selector, input) {
+      if (this.canApplayMask()) {
+        var element = new MaskedInput(selector);
+        element.unmask();
+
+        var phone = input.getValue().replace(/\D/g, '');
+        if (phone && phone.length > 10) {
+          element.mask("99999-999?9");
+        } else {
+          element.mask("9999-9999?9");
+        }
+      }
+    },
+    cpf: function(selector) {
+      if (this.canApplayMask()) {
+        var maskedInputCpf = new MaskedInput(selector);
+        maskedInputCpf.unmask();
+        maskedInputCpf.mask('999.999.999-99');
+      }
+    },
+    cnpj: function(selector) {
+      if (this.canApplayMask()) {
+        var maskedInputCnpj = new MaskedInput(selector);
+        maskedInputCnpj.unmask();
+        maskedInputCnpj.mask('99.999.999/9999-99');
+      }
+    },
+    dob: function(selector) {
+      if (this.canApplayMask()) {
+        var maskedInputDay = new MaskedInput(selector);
+        maskedInputDay.unmask();
+        maskedInputDay.mask('99/99/9999');
+      }
+    }
+  };
+  var ipgPagSeguroDiretoMaskInst = new IpgPagSeguroDiretoMask();
+
+
+  var CODE_PAYMENT_METHOD = "<?php echo $code ?>";
+  var idPaymentPagDigital = "<?php echo 'p_method_' . $code; ?>";
+
+  var setupIpgPagSeguroDiretoValidator = {'paymentMethod': "<?php echo $code ?>"};
+  var ipgValidatorIpgPagSeguroDiretoInst = new IpgValidator(setupIpgPagSeguroDiretoValidator);
+
+  ipagare.preparePaymentPagSeguroDireto();
+  //payment.addBeforeValidateFunction("ipgpagsegurodireto", ipagare.validatePayment);
+
+  var ipgPagSeguroDiretoToggleToolTipInst = new IpgPagSeguroDiretoToggleToolTipBinCard("<?php echo $code ?>");
+
+  var isUrlTelevendas = "<?php echo $isInTelevendasPayment ? true : false; ?>";
+  var isInCvmPayment = "<?php echo $isInCvmPayment ? true : false; ?>";
+  var isInOpcPayment = "<?php echo $isInOpcPayment ? true : false; ?>";
+
+  $$('div.ipagare ul#payment_form_ipgpagsegurodireto div.cvv-o-que-e-isso a').each(function(element) {
+    Element.observe(element, 'mouseover', function(e) {
+      ipgPagSeguroDiretoToggleToolTipInst.insert(e);
+    });
+    Element.observe(element, 'mouseout', function(e) {
+      ipgPagSeguroDiretoToggleToolTipInst.insert(e);
+    });
+  });
+
+  var ipgToggleToolTipBinCardInst = new IpgPagSeguroDiretoToggleToolTipBinCard();
+
+  $$('div.ipagare ul#payment_form_ipgpagsegurodireto div.bin-como-funciona a').each(function(element) {
+    Element.observe(element, 'mouseover', function(e) {
+      //ipgToggleToolTipBinCardInst.insert(e);
+    });
+    Element.observe(element, 'mouseout', function(e) {
+      //ipgToggleToolTipBinCardInst.insert(e);
+    });
+  });
+
+  // mascaras
+  ipgPagSeguroDiretoMaskInst.areaCode('#payment_form_ipgpagsegurodireto div.titular-cartao input.areacode');
+  ipgPagSeguroDiretoMaskInst.dob('#payment_form_ipgpagsegurodireto div.titular-cartao input.dob');
+  ipgPagSeguroDiretoMaskInst.cpf('#payment_form_ipgpagsegurodireto div.titular-cartao input.cpf');
+
+  $('ipgpagsegurodireto_fonenumber_titular_cartao').observe('blur', function() {
+    ipgPagSeguroDiretoMaskInst.telephone('#payment_form_ipgpagsegurodireto div.titular-cartao input.fonenumber', this);
+  }).triggerEvent('blur');
+<?php
+foreach ($paymentTypeOptions->getOptions() as $paymentTypeOption) {
+  $paymentType = $paymentTypeOption->getPaymentType();
+  foreach ($paymentTypeOption->getPaymentModeOptions() as $paymentModeOption) {
+    $paymentMode = $paymentModeOption->getPaymentMode();
+    if ($paymentMode->isAvista()) {
+      if ($paymentModeOption->hasDescontaAvista()) {
+        ?>
+          IpagarePagSeguroDirectoDiscount["<?php echo $paymentType->getValue() ?>"] = new IpagarePagSeguroDirectoPaymentType("<?php echo $paymentType->getValue() ?>", <?php echo $paymentModeOption->getDescontoAvista(); ?>, <?php echo $paymentModeOption->getParcelAmount(); ?>);
+        <?php
+      }
+    }
+  }
+}
+?>
+  IpagarePagSeguroDiretoPayment.grandTotal = <?php echo $grandTotal ?>;
+  IpagarePagSeguroDiretoPayment.imagePath = '<?php echo $imagePath ?>';
+
+  IpagarePagSeguroDiretoPayment.setSessionId();
+
+  if (isInCvmPayment) {
+
+  }
+  if (isInOpcPayment) {
+
+  }
+  //]]>
+</script>

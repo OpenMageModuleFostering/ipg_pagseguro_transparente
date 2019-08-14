@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Ipagare_IpgBase>
+            <version>1.16.4</version>
+        </Ipagare_IpgBase>
+    </modules>
+    
+    <global>
+        <models>
+            <ipgbase>
+                <class>Ipagare_IpgBase_Model</class>
+            </ipgbase>
+        </models>
+        
+        <blocks>
+            <ipgbase>
+                <class>Ipagare_IpgBase_Block</class>
+            </ipgbase>
+            <adminhtml>
+                <rewrite>
+                    <sales_order_totals>Ipagare_IpgBase_Block_Adminhtml_Sales_Order_Totals</sales_order_totals>
+                    <sales_order_invoice_totals>Ipagare_IpgBase_Block_Adminhtml_Sales_Order_Invoice_Totals</sales_order_invoice_totals>
+                </rewrite>
+            </adminhtml>
+            <sales>
+                <rewrite>
+                    <order_totals>Ipagare_IpgBase_Block_Sales_Order_Totals</order_totals>
+                    <order_invoice_totals>Ipagare_IpgBase_Block_Sales_Order_Invoice_Totals</order_invoice_totals>
+                </rewrite>
+            </sales>
+        </blocks>
+        
+        <helpers>
+            <ipgbase>
+                <class>Ipagare_IpgBase_Helper</class>
+            </ipgbase>
+        </helpers>
+        
+        <resources>
+            <ipgbase_setup>
+                <setup>
+                    <module>Ipagare_IpgBase</module>
+                    <class>Mage_Sales_Model_Mysql4_Setup</class>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </ipgbase_setup>
+        </resources>
+        
+        <events>
+            <ipgbase_log_user_action>
+                <observers>
+                    <ipgbase_log_user_action>
+                        <class>ipgbase/observer</class>
+                        <method>logUserAction</method>
+                    </ipgbase_log_user_action>
+                </observers>
+            </ipgbase_log_user_action>
+        </events>
+        
+        <template>
+            <email>
+                <ipg_boleto_sales_email_order_template translate="label" module="sales">
+                    <label>Boleto a vencer</label>
+                    <file>sales/ipg_boleto.html</file>
+                    <type>html</type>
+                </ipg_boleto_sales_email_order_template>
+            </email>
+        </template>
+    </global>
+    
+    <admin>
+        <!--
+        <secure_url>
+            <Ipagare_IpgBase>/ipgbase</Ipagare_IpgBase>
+        </secure_url>
+        -->
+        <routers>
+            <ipgbase>
+                <use>admin</use>
+                <args>
+                    <module>Ipagare_IpgBase</module>
+                    <frontName>ipgbase</frontName>
+                </args>
+            </ipgbase>
+        </routers>
+    </admin>
+
+    <adminhtml>
+        <layout>
+            <updates>
+                <ipgbase module='ipgbase'>
+                    <file>ipagare/ipgbase.xml</file>
+                </ipgbase>
+            </updates>
+        </layout>
+    </adminhtml>
+    
+    <frontend>
+        <secure_url>
+            <idecheckoutvm>/ipgbase/</idecheckoutvm>
+        </secure_url>
+        <routers>
+            <idecheckoutvm>
+                <use>standard</use>
+                <args>
+                    <module>Ipagare_IpgBase</module>
+                    <frontName>ipgbase</frontName>
+                </args>
+            </idecheckoutvm>
+        </routers>
+        <layout>
+            <updates>
+                <ipgbase module='ipgbase'>
+                    <file>ipagare/ipgbase.xml</file>
+                </ipgbase>
+            </updates>
+        </layout>
+        <translate>
+            <modules>
+                <Ipagare_IpgBase>
+                    <files>
+                        <default>Ipagare_IpgBase.csv</default>
+                    </files>
+                </Ipagare_IpgBase>
+            </modules>
+        </translate>
+    </frontend>
+    
+    <crontab>
+        <jobs>
+            <ipagare_ipgbase_expirapedido>
+                <schedule>
+                    <cron_expr>*/30 * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>ipgbase/observer::expirapedido</model>
+                </run>
+            </ipagare_ipgbase_expirapedido>
+            <ipagare_ipgbase_expiraboleto>
+                <schedule>
+                    <cron_expr>10 1 * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>ipgbase/observer::expiraBoletos</model>
+                </run>
+            </ipagare_ipgbase_expiraboleto>
+            <ipagare_ipgbase_reenvioemail>
+                <schedule>
+                    <cron_expr>10 2 * * *</cron_expr> 
+                </schedule>
+                <run>
+                    <model>ipgbase/observer::enviaEmailBoletosAvencer</model>
+                </run>
+            </ipagare_ipgbase_reenvioemail>
+            <ipagare_ipgbase_licenseexpcheck>
+                <schedule>
+                    <cron_expr>10 3 * * *</cron_expr> 
+                </schedule>
+                <run>
+                    <model>ipgbase/observer::licenseExpCheck</model>
+                </run>
+            </ipagare_ipgbase_licenseexpcheck>
+        </jobs>
+    </crontab> 
+    
+    <default>
+        <ipgbase>
+            <pagina_sucesso>
+                <mostrar_conteudo>1</mostrar_conteudo>
+            </pagina_sucesso>
+            <osc>
+                <css_active>1</css_active>
+            </osc>
+            <reenvio_boleto>
+                <numero_dias>2</numero_dias>
+            </reenvio_boleto>
+            <controle_envio_email>
+                <novo>1</novo>
+                <cancelado>1</cancelado>
+                <fatura_gerada>1</fatura_gerada>
+                <texto_email_cancelado>Caso deseje realizar a compra novamente, acesse nosso site ##URL_LOJA##</texto_email_cancelado>
+            </controle_envio_email>
+        </ipgbase>
+    </default>
+</config>

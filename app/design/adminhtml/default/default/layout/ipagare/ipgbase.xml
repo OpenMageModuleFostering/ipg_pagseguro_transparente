@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<layout>
+    <default>
+        <reference name="head">
+            <action method="addCss">
+                <stylesheet>ipgbase/css/styles.css</stylesheet>
+            </action>
+            <action method="addItem">
+                <type>js</type>
+                <name>ipagare/lib/ipagare.js</name>
+            </action>
+            <action method="addJs">
+                <script>ipagare/ipgbase/adminhtml/index.js</script>
+            </action>
+        </reference>
+    </default>
+</layout>

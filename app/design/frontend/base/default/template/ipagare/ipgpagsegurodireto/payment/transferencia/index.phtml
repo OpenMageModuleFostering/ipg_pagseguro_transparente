@@ -1,0 +1,25 @@
+<?php $parameters = $this->getParameters(); ?>
+
+<link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/styles.css') ?>" type="text/css" />
+<script type="text/javascript">
+//<![CDATA[
+  var URL_PAYMENT = "<?php echo $parameters->getPaymentLink(); ?>";
+  var URL_VERIFY = "<?php echo Mage::getUrl("ipgpagsegurodireto/notification/retorno", array('order_id' => $parameters->getReference())); ?>";
+//]]>
+</script>
+<div id="ipagare" class="banco">
+  <h1><?php echo $this->__('Seu pagamento será iniciado...') ?></h1>
+  <ol>
+    <li><?php echo $this->__('txt.msgTelaDebito1') ?></li>
+    <li><?php echo $this->__('txt.msgTelaDebito2') ?></li>
+    <li><?php echo $this->__('txt.msgTelaDebito3') ?></li>
+  </ol>
+  <p class="desc">
+    <?php echo $this->__('txt.msgTelaDebito4') ?><br/>
+    <?php echo $this->__('txt.msgTelaDebito5') ?>
+  </p>
+
+  <div id="ipagare" class="pagseguro-direto-frame">
+    <p class="btn"><a href="javascript:void(0);" onclick="javascript:ipagare.openPopup();" title="<?php echo $this->__('txt.abrirPagBanco') ?>"><?php echo $this->__('txt.abrirPagBanco') ?></a></p>
+  </div>
+</div>

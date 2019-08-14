@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<layout>
+    <default>
+        <reference name="head">
+            <action method="addCss">
+                <stylesheet>ipgbase/css/styles.css?1.16.4</stylesheet>
+            </action>
+            <action method="addItem">
+                <type>js</type>
+                <name>ipagare/lib/ipagare.js?1.16.4</name>
+            </action>
+        </reference>
+    </default>
+    
+    <checkout_onepage_success>
+        <reference name="head">
+<!--            <action method="addCss"><stylesheet>ipgmoip/css/styles.css</stylesheet></action>-->
+<!--            <action method="addCss"><stylesheet>ipgcore/css/styles.css</stylesheet></action>-->
+        </reference>
+        
+        <reference name="checkout.success">
+            <block type="ipgbase/checkout_onepage_success" name="success.details" />
+        </reference>
+    </checkout_onepage_success>
+</layout>

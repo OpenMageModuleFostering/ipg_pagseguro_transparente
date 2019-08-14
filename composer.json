@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/IPG_PagSeguro_Transparente",
+    "type": "magento-module",
+    "license": "GNU-General-Public-License-(GPL)",
+    "homepage": "",
+    "description": "Módulo PagSeguro Transparente para Magento.",
+    "authors": [
+    {
+        "name": "iPAGARE",
+        "email": "magento@ideatecnologia.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}

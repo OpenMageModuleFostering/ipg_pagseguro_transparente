@@ -1,0 +1,35 @@
+<link rel="stylesheet" href="<?php echo $this->getSkinUrl('ipgpagsegurodireto/css/styles.css') ?>" type="text/css" />
+
+<?php
+$block = $this->getBlock();
+$paymentParserData = $block->getPaymentData();
+$paymentType = $paymentParserData->getPaymentMethod()->getCode();
+?>
+
+<div id="ipagare" class="onepage-success">
+  <div class="aviso-confirmacao">
+      <?php
+      echo '<p>' . $this->__('txt.msgPagSegTransacaoProcessada') . '</p>';
+      if ($paymentParserData->getStatus()) {
+        echo '<p>' . $this->__('txt.msgPagSegTransacao2') . '<strong>' . $paymentParserData->getCode() . '</strong></p>';
+        echo '<p>' . $this->__('txt.msgPagSegTransacao1') . '<strong>' . $paymentParserData->getStatus()->getClientMessage() . '</strong></p>';
+      } echo '<p>' . $this->__('txt.msgPagSegTransacao3') . '</p>';
+      ?>
+  </div>
+  <?php if ($paymentType->isCreditCard()) {
+    
+  } else if ($paymentType->isBoleto()) {
+    ?>
+    <script type="text/javascript">
+      function abrirBoleto() {
+        window.open("<?php echo $paymentParserData->getPaymentLink(); ?>", "BOLETO", "'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=700,height=800");
+      }
+    </script>
+    <p class="boleto-desc">
+    <?php echo $this->__('txt.msgGerarBoleto') ?>
+    </p>
+    <a class="boleto-link" href="javascript:void(0);" onclick="abrirBoleto();" title="<?php echo $this->__('txt.GerarBoleto') ?>"></a>
+<?php } ?>
+</div>
+
+<?php Mage::getSingleton('ipgbase/session')->clear(); ?>
