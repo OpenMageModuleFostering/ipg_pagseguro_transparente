@@ -1,5 +1,5 @@
 {
-    "name": "OpenMageModuleFostering\/IPG_PagSeguro_Transparente",
+    "name": "openmage-module-fostering\/ipg_pagseguro_transparente",
     "type": "magento-module",
     "license": "GNU-General-Public-License-(GPL)",
     "homepage": "",
